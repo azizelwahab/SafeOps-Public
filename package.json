@@ -1,0 +1,44 @@
+{
+  "name": "safeops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workplace Safety & Risk Management API",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": "^24.0.0 || ^26.13.0"
+  },
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "auth:setup": "node scripts/setup-local-auth.js",
+    "bootstrap:admin": "node --env-file=.env.bootstrap scripts/bootstrap-admin.js",
+    "db:migrate:test": "node scripts/migrate-test.js",
+    "test": "node --import ./tests/setup.js --test --test-timeout=5000 tests/api.test.js tests/auth.test.js tests/correctiveAction.test.js tests/hazardClosure.test.js tests/readiness.test.js tests/shutdown.test.js tests/frontend.test.js tests/frontend-hazards.test.js tests/frontend-risk.test.js tests/frontend-actions.test.js tests/frontend-closure.test.js",
+    "test:integration": "node --import ./tests/setup.js --test --test-timeout=5000 tests/postgres.integration.test.js tests/auth.integration.test.js tests/hazard.integration.test.js tests/riskAssessment.integration.test.js tests/correctiveAction.integration.test.js tests/hazardClosure.integration.test.js tests/dashboard.integration.test.js tests/workflow.integration.test.js tests/frontend.integration.test.js",
+    "demo:workflow": "node --import ./tests/setup.js --test --test-timeout=5000 tests/workflow.integration.test.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.5",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.12.1",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "prisma": "7.10.1",
+    "supertest": "^7.3.2"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "effect": "3.22.5"
+    }
+  }
+}

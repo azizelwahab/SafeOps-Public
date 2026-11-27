@@ -1,0 +1,277 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  EMPLOYEE
+  SAFETY_OFFICER
+  ADMIN
+}
+
+enum AccountStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum HazardCategory {
+  ELECTRICAL
+  CHEMICAL
+  FIRE
+  MECHANICAL
+  ERGONOMIC
+  BIOLOGICAL
+  PHYSICAL
+  PSYCHOSOCIAL
+  ENVIRONMENTAL
+  OTHER
+}
+
+enum HazardStatus {
+  REPORTED
+  UNDER_REVIEW
+  CONFIRMED
+  DISMISSED
+  CLOSED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum HazardClosureOutcome {
+  NOT_REQUIRED
+  ACCEPTED
+  ESCALATED
+}
+
+enum CorrectiveActionStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_VERIFICATION
+  VERIFIED
+}
+
+enum CorrectiveActionEventKind {
+  CREATED
+  UPDATED
+  STARTED
+  SUBMITTED
+  VERIFIED
+  RETURNED
+}
+
+model Organization {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String     @unique
+  createdAt DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime   @updatedAt @db.Timestamptz(3)
+  users     User[]
+  auditLogs AuditLog[]
+  hazards   Hazard[]
+}
+
+model User {
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId          String                   @db.Uuid
+  name                    String
+  email                   String                   @unique
+  passwordHash            String
+  authVersion             Int                      @default(0)
+  role                    UserRole                 @default(EMPLOYEE)
+  status                  AccountStatus            @default(PENDING)
+  approvedAt              DateTime?                @db.Timestamptz(3)
+  approvedById            String?                  @db.Uuid
+  deletedAt               DateTime?                @db.Timestamptz(3)
+  createdAt               DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime                 @updatedAt @db.Timestamptz(3)
+  organization            Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  approvedBy              User?                    @relation("UserApproval", fields: [organizationId, approvedById], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  approvedUsers           User[]                   @relation("UserApproval")
+  auditLogs               AuditLog[]
+  reportedHazards         Hazard[]                 @relation("HazardReporter")
+  reviewedHazards         Hazard[]                 @relation("HazardReviewer")
+  riskAssessmentRevisions RiskAssessmentRevision[]
+  assignedActions         CorrectiveAction[]       @relation("CorrectiveActionAssignee")
+  createdActions          CorrectiveAction[]       @relation("CorrectiveActionCreator")
+  submittedActions        CorrectiveAction[]       @relation("CorrectiveActionSubmitter")
+  correctiveActionEvents  CorrectiveActionEvent[]
+  residualRiskRevisions   ResidualRiskRevision[]
+  hazardClosureDecisions  HazardClosureDecision[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status, deletedAt, createdAt])
+  @@index([organizationId, approvedById])
+}
+
+model Hazard {
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId        String                 @db.Uuid
+  reportedById          String                 @db.Uuid
+  reviewedById          String?                @db.Uuid
+  title                 String
+  description           String
+  category              HazardCategory
+  location              String
+  status                HazardStatus           @default(REPORTED)
+  reviewNotes           String?
+  reviewedAt            DateTime?              @db.Timestamptz(3)
+  createdAt             DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime               @updatedAt @db.Timestamptz(3)
+  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  reportedBy            User                   @relation("HazardReporter", fields: [organizationId, reportedById], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  reviewedBy            User?                  @relation("HazardReviewer", fields: [organizationId, reviewedById], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  riskAssessment        RiskAssessment?
+  residualRiskRevisions ResidualRiskRevision[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, createdAt, id])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, category, createdAt])
+  @@index([organizationId, reportedById, createdAt])
+  @@index([organizationId, reviewedById])
+}
+
+model ResidualRiskRevision {
+  organizationId      String                 @db.Uuid
+  hazardId            String                 @db.Uuid
+  version             Int
+  assessedById        String                 @db.Uuid
+  baselineVersion     Int
+  verifiedActionCount Int
+  likelihood          Int
+  severity            Int
+  score               Int
+  level               RiskLevel
+  rationale           String
+  createdAt           DateTime               @default(now()) @db.Timestamptz(3)
+  hazard              Hazard                 @relation(fields: [organizationId, hazardId], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  assessedBy          User                   @relation(fields: [organizationId, assessedById], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  closureDecision     HazardClosureDecision?
+
+  @@id([hazardId, version])
+  @@unique([organizationId, hazardId, version])
+  @@index([organizationId, assessedById])
+}
+
+model HazardClosureDecision {
+  organizationId  String               @db.Uuid
+  hazardId        String               @db.Uuid
+  residualVersion Int
+  decidedById     String               @db.Uuid
+  outcome         HazardClosureOutcome
+  rationale       String
+  createdAt       DateTime             @default(now()) @db.Timestamptz(3)
+  residualRisk    ResidualRiskRevision @relation(fields: [organizationId, hazardId, residualVersion], references: [organizationId, hazardId, version], onDelete: Restrict, onUpdate: Restrict)
+  decidedBy       User                 @relation(fields: [organizationId, decidedById], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([hazardId, residualVersion])
+  @@unique([organizationId, hazardId, residualVersion])
+  @@index([organizationId, decidedById])
+}
+
+model RiskAssessment {
+  id                String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String                   @db.Uuid
+  hazardId          String                   @db.Uuid
+  version           Int                      @default(1)
+  createdAt         DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                 @updatedAt @db.Timestamptz(3)
+  hazard            Hazard                   @relation(fields: [organizationId, hazardId], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  revisions         RiskAssessmentRevision[]
+  correctiveActions CorrectiveAction[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, hazardId])
+  @@index([organizationId, createdAt, id])
+}
+
+model CorrectiveAction {
+  id                String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String                  @db.Uuid
+  hazardId          String                  @db.Uuid
+  assigneeId        String                  @db.Uuid
+  createdById       String                  @db.Uuid
+  submittedById     String?                 @db.Uuid
+  title             String
+  description       String
+  dueAt             DateTime                @db.Timestamptz(3)
+  status            CorrectiveActionStatus  @default(OPEN)
+  workNotes         String?
+  completionDetails String?
+  version           Int                     @default(1)
+  createdAt         DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @db.Timestamptz(3)
+  riskAssessment    RiskAssessment          @relation(fields: [organizationId, hazardId], references: [organizationId, hazardId], onDelete: Restrict, onUpdate: Restrict)
+  assignee          User                    @relation("CorrectiveActionAssignee", fields: [organizationId, assigneeId], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy         User                    @relation("CorrectiveActionCreator", fields: [organizationId, createdById], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  submittedBy       User?                   @relation("CorrectiveActionSubmitter", fields: [organizationId, submittedById], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  events            CorrectiveActionEvent[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, createdAt, id])
+  @@index([organizationId, hazardId])
+  @@index([organizationId, assigneeId])
+  @@index([organizationId, status, dueAt])
+}
+
+model CorrectiveActionEvent {
+  organizationId    String                    @db.Uuid
+  actionId          String                    @db.Uuid
+  version           Int
+  actorId           String                    @db.Uuid
+  kind              CorrectiveActionEventKind
+  fromStatus        CorrectiveActionStatus?
+  toStatus          CorrectiveActionStatus
+  reason            String?
+  completionDetails String?
+  createdAt         DateTime                  @default(now()) @db.Timestamptz(3)
+  action            CorrectiveAction          @relation(fields: [organizationId, actionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  actor             User                      @relation(fields: [organizationId, actorId], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([actionId, version])
+  @@index([organizationId, actorId])
+}
+
+model RiskAssessmentRevision {
+  organizationId String         @db.Uuid
+  assessmentId   String         @db.Uuid
+  version        Int
+  assessedById   String         @db.Uuid
+  likelihood     Int
+  severity       Int
+  score          Int
+  level          RiskLevel
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  assessment     RiskAssessment @relation(fields: [organizationId, assessmentId], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+  assessedBy     User           @relation(fields: [organizationId, assessedById], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([assessmentId, version])
+  @@index([organizationId, assessedById])
+}
+
+model AuditLog {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @db.Uuid
+  actorId        String?      @db.Uuid
+  action         String
+  entityType     String
+  entityId       String?
+  metadata       Json?
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actor          User?        @relation(fields: [organizationId, actorId], references: [organizationId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, actorId])
+  @@index([organizationId, entityType, entityId])
+}

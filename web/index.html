@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SafeOps | Operations dashboard</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" id="skip-link" href="#login-title">Skip to main content</a>
+  <div class="login-shell" id="login-view">
+    <aside class="login-brand">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span> SafeOps</div>
+      <div class="brand-story">
+        <p class="eyebrow">Workplace health &amp; safety</p>
+        <p class="brand-heading">Safety operations,<br>in focus.</p>
+        <p>See the hazards, risk levels, and corrective work that need your attention in one place.</p>
+      </div>
+    </aside>
+    <main class="login-main">
+      <div class="login-card">
+        <p class="eyebrow">Operations workspace</p>
+        <h1 id="login-title" tabindex="-1">Sign in to SafeOps</h1>
+        <p class="muted" id="login-description">Use your approved SafeOps account to open the operations dashboard.</p>
+        <noscript><p class="notice error">Enable JavaScript to sign in and use the dashboard.</p></noscript>
+        <form id="login-form" method="post">
+          <div class="field">
+            <label for="email">Email address</label>
+            <input id="email" name="email" type="email" autocomplete="username" maxlength="254" placeholder="name@organization.com" required>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <button class="button primary sign-in" type="submit" id="login-button">Sign in</button>
+        </form>
+        <p id="signup-switch-row"><button class="button" id="show-signup" type="button" aria-expanded="false" aria-controls="signup-form">Request an account</button></p>
+        <form id="signup-form" method="post" hidden aria-label="Request an account">
+          <div class="field"><label for="signup-name">Name</label><input id="signup-name" name="name" autocomplete="name" maxlength="100" required></div>
+          <div class="field"><label for="signup-organization">Organization slug</label><input id="signup-organization" name="organizationSlug" autocapitalize="none" spellcheck="false" maxlength="80" required></div>
+          <div class="field"><label for="signup-email">Work email</label><input id="signup-email" name="email" type="email" autocomplete="email" maxlength="254" required></div>
+          <div class="field"><label for="signup-password">Choose a password</label><input id="signup-password" name="password" type="password" autocomplete="new-password" aria-describedby="signup-password-hint" required><span id="signup-password-hint" class="muted">At least 12 characters and at most 72 UTF-8 bytes.</span></div>
+          <button class="button primary" id="signup-submit" type="submit">Request account</button>
+          <button class="button" id="signup-back" type="button">Back to sign in</button>
+        </form>
+        <p class="notice" id="login-notice" role="status" hidden></p>
+      </div>
+    </main>
+  </div>
+  <div class="app-shell" id="dashboard-view" hidden>
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span> SafeOps</div>
+        <button class="button sign-out" id="navigation-toggle" type="button" aria-expanded="false" aria-controls="sidebar-menu">Menu</button>
+      </div>
+      <div id="sidebar-menu" class="sidebar-menu">
+      <div class="workspace">
+        <div class="workspace-icon" aria-hidden="true"></div>
+        <div><strong id="organization"></strong><span id="workspace-role"></span></div>
+      </div>
+      <nav aria-label="Workspace sections" id="navigation"></nav>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar" id="avatar" aria-hidden="true"></span><div><strong id="user-name"></strong><span id="user-role"></span></div></div>
+        <button class="button sign-out" type="button" id="logout">Sign out</button>
+      </div>
+      </div>
+    </aside>
+    <main class="dashboard" id="overview" tabindex="-1">
+      <header class="topbar"><span id="workspace-path">Operations / Dashboard</span><span id="top-role" class="role-tag"></span></header>
+      <div class="content" id="dashboard-content">
+        <header class="dashboard-heading">
+          <div>
+            <p class="eyebrow">Safety operations</p>
+            <h1 id="dashboard-title" tabindex="-1">Operational dashboard</h1>
+            <p class="muted" id="dashboard-scope"></p>
+          </div>
+          <div class="toolbar">
+            <details class="filter" id="filter">
+              <summary class="button" id="range-label">All time</summary>
+              <form id="range-form" class="filter-content">
+                <div class="field"><label for="from">From date (UTC)</label><input id="from" name="from" type="date"></div>
+                <div class="field"><label for="to">Through date (UTC)</label><input id="to" name="to" type="date"></div>
+                <p id="range-error" class="form-error" role="alert" hidden></p>
+                <div class="filter-buttons"><button type="button" class="button" id="reset-range">Clear</button><button type="submit" class="button primary">Apply</button></div>
+              </form>
+            </details>
+            <button class="button" type="button" id="refresh">Refresh</button>
+          </div>
+        </header>
+        <p class="snapshot" id="snapshot" hidden></p>
+        <div class="notice" id="dashboard-status" role="status" hidden>
+          <p id="dashboard-status-text"></p><button class="button" type="button" id="retry" hidden>Try again</button>
+        </div>
+        <div id="metrics" hidden>
+          <section class="kpi-grid" aria-label="Key metrics" id="key-metrics"></section>
+          <div class="charts">
+            <section class="panel" id="hazards">
+              <h2>Hazards by status</h2>
+              <div id="hazard-chart"></div>
+            </section>
+            <section class="panel" id="risk">
+              <h2>Risk distribution</h2>
+              <div id="risk-chart"></div>
+              <dl class="risk-sources" id="risk-sources"></dl>
+            </section>
+            <section class="panel action-panel" id="actions">
+              <h2>Corrective actions</h2>
+              <div id="action-chart"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+      <div class="content" id="hazard-management" hidden>
+        <section id="hazard-list-view">
+          <header class="dashboard-heading hazard-heading">
+            <div><h1 id="hazard-list-title" tabindex="-1">Hazards</h1><p class="muted" id="hazard-scope"></p></div>
+            <button class="button primary" type="button" id="report-hazard">Report hazard</button>
+          </header>
+          <form id="hazard-filters" class="panel hazard-filters">
+            <div class="field"><label for="hazard-search">Search</label><input id="hazard-search" name="search" type="search" maxlength="200" placeholder="Title or description"></div>
+            <div class="field"><label for="hazard-status">Status</label><select id="hazard-status" name="status"><option value="">All statuses</option></select></div>
+            <div class="field"><label for="hazard-category">Category</label><select id="hazard-category" name="category"><option value="">All categories</option></select></div>
+            <div class="field"><label for="hazard-location">Location</label><input id="hazard-location" name="location" maxlength="200" placeholder="Any location"></div>
+            <div class="hazard-filter-buttons"><button type="submit" class="button primary">Apply filters</button><button id="clear-hazard-filters" type="button" class="button">Clear</button></div>
+          </form>
+          <div class="notice" id="hazard-list-notice" hidden><p role="status" id="hazard-list-message"></p><button class="button" id="retry-hazards" type="button" hidden>Try again</button></div>
+          <div id="hazard-results" class="panel hazard-results" hidden></div>
+          <nav class="hazard-pagination" id="hazard-pagination" aria-label="Hazard list pages" hidden>
+            <button class="button" type="button" id="previous-hazards">Previous</button>
+            <span id="hazard-page"></span>
+            <button class="button" type="button" id="next-hazards">Next</button>
+          </nav>
+        </section>
+
+        <section id="hazard-detail-view" hidden>
+          <button class="button" type="button" id="back-to-hazards">Back to hazards</button>
+          <p class="notice" id="hazard-detail-notice" role="status" hidden></p>
+          <button class="button" type="button" id="reload-hazard" hidden>Reload hazard</button>
+          <article class="panel hazard-detail-card" id="hazard-detail-card" hidden>
+            <header class="dashboard-heading">
+              <div><h1 id="hazard-detail-title" tabindex="-1"></h1><span id="hazard-detail-status"></span></div>
+              <button class="button" type="button" id="edit-hazard" hidden>Edit report</button>
+            </header>
+            <dl class="hazard-facts" id="hazard-detail-facts"></dl>
+            <h2>Description</h2>
+            <p class="hazard-text" id="hazard-detail-description"></p>
+            <section class="hazard-review" aria-labelledby="hazard-review-title">
+              <h2 id="hazard-review-title">Investigation</h2>
+              <p id="hazard-review-state" class="muted"></p>
+              <p class="hazard-text" id="hazard-review-notes" hidden></p>
+              <button class="button primary" type="button" id="start-hazard-review" hidden>Start review</button>
+              <form id="hazard-review-form" method="post" hidden>
+                <fieldset id="hazard-review-fields">
+                  <div class="field">
+                    <label for="hazard-review-input">Review notes</label>
+                    <textarea id="hazard-review-input" name="reviewNotes" maxlength="2000" rows="4" required aria-describedby="hazard-review-hint"></textarea>
+                    <p class="muted" id="hazard-review-hint">Describe your findings or justify dismissal. Use 10–2,000 characters.</p>
+                  </div>
+                  <div class="hazard-form-actions">
+                    <button class="button primary" type="submit" value="confirm">Confirm hazard</button>
+                    <button class="button" type="submit" value="dismiss">Dismiss hazard</button>
+                  </div>
+                </fieldset>
+              </form>
+            </section>
+            <button class="button" type="button" id="show-hazard-closure" aria-expanded="false" aria-controls="hazard-closure-panel" hidden>Residual risk and closure</button>
+            <section class="hazard-review" id="hazard-closure-panel" aria-labelledby="hazard-closure-title" hidden>
+              <h2 id="hazard-closure-title" tabindex="-1">Residual risk and closure</h2>
+              <p class="notice" id="closure-notice" role="status" hidden></p>
+              <button class="button" type="button" id="closure-reload" hidden>Reload closure data</button>
+              <div id="closure-evidence" hidden>
+                <div class="closure-comparison">
+                  <section class="panel" aria-labelledby="closure-baseline-title">
+                    <h3 id="closure-baseline-title">Baseline risk</h3>
+                    <div id="closure-baseline"></div>
+                  </section>
+                  <section class="panel" aria-labelledby="closure-residual-title">
+                    <h3 id="closure-residual-title">Latest residual risk</h3>
+                    <div id="closure-residual"></div>
+                  </section>
+                </div>
+                <p class="muted">Scoring bands are Low 1–4, Medium 5–9, High 10–16, and Critical 17–25.</p>
+                <section id="closure-decision" hidden>
+                  <h3>Latest closure decision</h3>
+                  <div id="closure-decision-record"></div>
+                </section>
+                <section id="closure-readiness" hidden>
+                  <h3>Closure readiness</h3>
+                  <ul id="closure-checks"></ul>
+                  <p class="muted">Record a fresh residual assessment if the baseline changes or additional corrective actions are verified. An escalation leaves the hazard confirmed and requires a fresh residual revision before another decision.</p>
+                </section>
+                <form id="residual-form" hidden>
+                  <fieldset id="residual-fields">
+                    <legend>Record residual risk</legend>
+                    <div class="hazard-editor-grid">
+                      <div class="field"><label for="residual-likelihood">Residual likelihood</label><input id="residual-likelihood" name="likelihood" type="number" min="1" max="5" step="1" required></div>
+                      <div class="field"><label for="residual-severity">Residual severity</label><input id="residual-severity" name="severity" type="number" min="1" max="5" step="1" required></div>
+                    </div>
+                    <div class="field"><label for="residual-rationale">Residual risk rationale</label><textarea id="residual-rationale" name="rationale" rows="3" maxlength="4000" required></textarea></div>
+                    <button class="button primary" type="submit">Save residual assessment</button>
+                  </fieldset>
+                  <p class="notice error" id="residual-form-error" role="alert" hidden></p>
+                </form>
+                <form id="closure-form" hidden>
+                  <fieldset id="closure-fields">
+                    <legend>Record a closure decision</legend>
+                    <p id="closure-decision-hint" class="muted"></p>
+                    <div class="field"><label for="closure-operation">Decision</label><select id="closure-operation" name="operation" required></select></div>
+                    <div class="field"><label for="closure-rationale">Closure decision rationale</label><textarea id="closure-rationale" name="rationale" rows="3" maxlength="4000" required></textarea></div>
+                    <button class="button primary" type="submit">Save closure decision</button>
+                  </fieldset>
+                  <p class="notice error" id="closure-form-error" role="alert" hidden></p>
+                </form>
+                <section id="closure-history-section">
+                  <h3>Residual risk revision history</h3>
+                  <p class="notice" id="closure-history-notice" role="status" hidden></p>
+                  <button class="button" type="button" id="closure-history-retry" hidden>Retry history</button>
+                  <ol class="risk-records" id="closure-history"></ol>
+                  <div class="hazard-pagination" id="closure-history-pages" hidden>
+                    <button class="button" type="button" id="closure-history-previous">Previous residual revisions</button><span id="closure-history-page"></span><button class="button" type="button" id="closure-history-next">Next residual revisions</button>
+                  </div>
+                </section>
+              </div>
+            </section>
+          </article>
+        </section>
+
+        <section id="hazard-editor-view" hidden>
+          <button class="button" type="button" id="cancel-hazard-edit">Cancel</button>
+          <div class="panel hazard-detail-card">
+            <h1 id="hazard-editor-title" tabindex="-1">Report hazard</h1>
+            <form id="hazard-editor" method="post">
+              <fieldset id="hazard-editor-fields">
+                <div class="field"><label for="report-title">Title</label><input id="report-title" name="title" maxlength="160" required></div>
+                <div class="field"><label for="report-description">Description</label><textarea id="report-description" name="description" rows="5" maxlength="4000" required></textarea></div>
+                <div class="hazard-editor-grid">
+                  <div class="field"><label for="report-category">Category</label><select id="report-category" name="category" required><option value="">Choose a category</option></select></div>
+                  <div class="field"><label for="report-location">Location</label><input id="report-location" name="location" maxlength="200" required></div>
+                </div>
+                <button class="button primary" type="submit" id="submit-hazard">Submit report</button>
+              </fieldset>
+              <p class="notice error" id="hazard-editor-error" role="alert" hidden></p>
+            </form>
+          </div>
+        </section>
+      </div>
+      <section class="content" id="risk-management" aria-labelledby="risk-workspace-title" hidden>
+        <header class="hazard-heading">
+          <h1 id="risk-workspace-title" tabindex="-1">Risk assessments</h1>
+          <p class="muted">Baseline assessments for hazards you can access.</p>
+        </header>
+        <p class="notice" id="risk-notice" role="status" hidden></p>
+        <button class="button" id="risk-retry" type="button" hidden>Retry</button>
+        <section class="panel hazard-detail-card" id="risk-list">
+          <button class="button primary" id="risk-new" type="button" hidden>New assessment</button>
+          <ul class="risk-records" aria-label="Assessments" id="risk-results"></ul>
+          <div class="hazard-actions" id="risk-pages" hidden>
+            <button class="button" id="risk-previous" type="button">Previous</button>
+            <span id="risk-page"></span>
+            <button class="button" id="risk-next" type="button">Next</button>
+          </div>
+        </section>
+        <section class="panel hazard-detail-card" id="risk-detail" hidden>
+          <button class="button" id="risk-back" type="button">Back to assessments</button>
+          <h2 id="risk-detail-title" tabindex="-1">Assessment details</h2>
+          <dl class="hazard-facts" id="risk-facts"></dl>
+          <button class="button" id="risk-edit" type="button" hidden>Edit ratings</button>
+          <button class="button" id="risk-create-action" type="button" hidden>Create corrective action</button>
+          <h3>Revision history</h3>
+          <ol class="risk-records" id="risk-history"></ol>
+          <p class="notice" id="risk-history-message" role="status" hidden></p>
+          <div class="hazard-actions" id="risk-history-pages" hidden>
+            <button class="button" id="risk-history-previous" type="button">Previous revisions</button>
+            <span id="risk-history-page"></span>
+            <button class="button" id="risk-history-next" type="button">Next revisions</button>
+          </div>
+        </section>
+        <section class="panel hazard-detail-card" id="risk-editor" hidden>
+          <h2 id="risk-editor-title" tabindex="-1">New assessment</h2>
+          <form id="risk-hazard-search" class="hazard-actions">
+            <div class="field"><label for="risk-search">Find confirmed hazards</label><input id="risk-search" name="search" type="search" maxlength="200"></div>
+            <button class="button" type="submit">Search hazards</button>
+          </form>
+          <p class="notice" id="risk-picker-message" role="status" hidden></p>
+          <form id="risk-ratings">
+            <fieldset id="risk-fields">
+              <legend id="risk-rating-legend">Ratings</legend>
+              <div id="risk-picker" class="hazard-actions">
+                <div class="field"><label for="risk-hazard">Confirmed hazard</label><select id="risk-hazard" name="hazardId"></select></div>
+                <button class="button" id="risk-picker-previous" type="button">Previous hazards</button>
+                <button class="button" id="risk-picker-next" type="button">Next hazards</button>
+              </div>
+              <div class="hazard-actions">
+                <div class="field"><label for="risk-likelihood">Likelihood</label><input id="risk-likelihood" name="likelihood" type="number" min="1" max="5" step="1" required></div>
+                <div class="field"><label for="risk-severity">Severity</label><input id="risk-severity" name="severity" type="number" min="1" max="5" step="1" required></div>
+              </div>
+              <p>Score ranges: Low 1–4, Medium 5–9, High 10–16, Critical 17–25.</p>
+              <button class="button primary" id="risk-save" type="submit">Save assessment</button>
+            </fieldset>
+            <p class="notice error" id="risk-save-error" role="alert" hidden></p>
+            <button class="button" id="risk-reload" type="button" hidden>Reload latest assessment</button>
+            <button class="button" id="risk-cancel" type="button">Cancel</button>
+          </form>
+        </section>
+      </section>
+      <section class="content" id="action-management" aria-labelledby="action-workspace-title" hidden>
+        <header class="hazard-heading"><h1 id="action-workspace-title" tabindex="-1">Corrective actions</h1></header>
+        <p class="notice" id="action-notice" role="status" hidden></p>
+        <button class="button" id="action-retry" type="button" hidden>Retry</button>
+        <section id="action-list">
+          <form class="panel hazard-filters" id="action-filters">
+            <div class="field"><label for="action-filter-hazard">Hazard ID</label><input id="action-filter-hazard" name="hazardId" maxlength="36"></div>
+            <div class="field"><label for="action-filter-assignee">Assignee ID</label><input id="action-filter-assignee" name="assigneeId" maxlength="36"></div>
+            <div class="field"><label for="action-filter-status">Status</label><select id="action-filter-status" name="status"><option value="">All statuses</option></select></div>
+            <div class="field"><label for="action-filter-overdue">Overdue</label><select id="action-filter-overdue" name="overdue"><option value="">Any due date</option><option value="true">Overdue only</option><option value="false">Not overdue</option></select></div>
+            <div class="hazard-filter-buttons">
+              <button class="button primary" type="submit">Apply filters</button>
+              <button class="button" id="action-clear" type="button">Clear filters</button>
+              <button class="button" id="action-new" type="button" hidden>New action</button>
+            </div>
+          </form>
+          <p class="notice error" id="action-filter-error" role="alert" hidden></p>
+          <div class="panel action-table-wrap" id="action-table" hidden>
+            <table class="action-table" role="table" aria-label="Corrective actions">
+              <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Title</th><th role="columnheader" scope="col">Status</th><th role="columnheader" scope="col">Assignee</th><th role="columnheader" scope="col">Due date</th><th role="columnheader" scope="col">Hazard</th></tr></thead>
+              <tbody role="rowgroup" id="action-results"></tbody>
+            </table>
+          </div>
+          <div class="hazard-pagination" id="action-pages" hidden>
+            <button class="button" type="button" id="action-previous">Previous actions</button><span id="action-page"></span><button class="button" type="button" id="action-next">Next actions</button>
+          </div>
+        </section>
+        <section class="panel hazard-detail-card" id="action-detail" hidden>
+          <button class="button" type="button" id="action-back">Back to actions</button>
+          <h2 id="action-title" tabindex="-1">Action details</h2>
+          <dl class="hazard-facts" id="action-facts"></dl>
+          <div id="action-text"></div>
+          <div class="hazard-actions" id="action-controls"></div>
+          <h3>Action history</h3>
+          <p class="notice" id="action-history-message" role="status" hidden></p>
+          <ol class="risk-records" id="action-history"></ol>
+          <div class="hazard-pagination" id="action-history-pages" hidden>
+            <button class="button" type="button" id="action-history-previous">Previous events</button><span id="action-history-page"></span><button class="button" type="button" id="action-history-next">Next events</button>
+          </div>
+        </section>
+        <section class="panel hazard-detail-card" id="action-editor" hidden>
+          <h2 id="action-editor-title" tabindex="-1"></h2>
+          <form id="action-form">
+            <fieldset id="action-fields">
+              <legend>Action information</legend>
+              <div class="field" data-action-field="hazardId"><label for="action-hazard-id">Confirmed and assessed hazard ID</label><input id="action-hazard-id" name="hazardId" maxlength="36"></div>
+              <div class="field" data-action-field="title"><label for="action-input-title">Title</label><input id="action-input-title" name="title" maxlength="160"></div>
+              <div class="field" data-action-field="description"><label for="action-description">Action plan</label><textarea id="action-description" name="description" maxlength="4000" rows="4"></textarea></div>
+              <div class="field" data-action-field="assigneeId">
+                <label for="action-assignee">Approved assignee ID</label><input id="action-assignee" name="assigneeId" maxlength="36" aria-describedby="action-assignee-help">
+                <p class="muted" id="action-assignee-help">Use your own account or enter an approved user’s ID. If you need another user’s ID, ask your administrator.</p>
+                <button type="button" class="button" id="action-assign-self">Assign to me</button>
+                <div id="action-directory" hidden>
+                  <div class="hazard-actions"><div class="field"><label for="action-user-search">Find approved users</label><input type="search" id="action-user-search" maxlength="254"></div><button type="button" class="button" id="action-find-users">Find users</button></div>
+                  <label for="action-user-options">Approved users</label><select id="action-user-options"></select>
+                  <div class="hazard-pagination"><button type="button" class="button" id="action-users-previous">Previous users</button><button type="button" class="button" id="action-users-next">Next users</button></div>
+                  <p id="action-user-message" role="status"></p>
+                </div>
+              </div>
+              <div class="field" data-action-field="dueAt"><label for="action-due">Due date and time (local)</label><input id="action-due" name="dueAt" type="datetime-local"></div>
+              <div class="field" data-action-field="workNotes"><label for="action-work-notes">Work notes</label><textarea id="action-work-notes" name="workNotes" maxlength="4000" rows="4"></textarea></div>
+              <div class="field" data-action-field="completionDetails"><label for="action-completion">Completion details</label><textarea id="action-completion" name="completionDetails" maxlength="4000" rows="4"></textarea></div>
+              <div class="field" data-action-field="reason"><label for="action-reason">Return reason</label><textarea id="action-reason" name="reason" maxlength="4000" rows="4"></textarea></div>
+              <button class="button primary" id="action-save" type="submit">Save</button>
+            </fieldset>
+            <p class="notice error" id="action-save-error" role="alert" hidden></p>
+            <button class="button" id="action-cancel" type="button">Cancel</button>
+          </form>
+        </section>
+      </section>
+      <section class="content" id="user-management" aria-labelledby="users-title" hidden>
+        <header class="users-heading">
+          <div><h1 id="users-title" tabindex="-1">User Management</h1><p class="muted">Review registration requests and manage access for your organization.</p></div>
+          <div id="users-organization" class="users-invite" hidden><span>Registration organization slug</span><strong id="users-slug"></strong></div>
+        </header>
+        <section class="panel users-directory" aria-labelledby="users-directory-title">
+        <div class="users-toolbar">
+        <h2 id="users-directory-title">Organization users</h2>
+        <form id="users-filters">
+          <div class="field"><label for="users-status">Filter by status</label><select id="users-status" name="status">
+            <option value="">All statuses</option><option value="PENDING">Pending</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option><option value="SUSPENDED">Suspended</option>
+          </select></div>
+          <div class="users-filter-actions"><button class="button" type="submit">Apply filter</button>
+          <button class="button" type="button" id="users-refresh">Refresh users</button></div>
+        </form>
+        </div>
+        <p class="notice" id="users-notice" role="status" tabindex="-1" hidden></p>
+        <div id="users-table" role="table" aria-labelledby="users-directory-title" hidden>
+          <div class="users-columns users-grid" role="row">
+            <span role="columnheader">Name and email</span><span role="columnheader">Role</span>
+            <span role="columnheader">Account status</span><span role="columnheader">Actions</span>
+          </div>
+          <div id="users-list" role="rowgroup"></div>
+        </div>
+        <div class="hazard-pagination users-pagination" id="users-pagination" hidden>
+          <button class="button" id="users-previous" type="button">Previous users</button><span id="users-page"></span><button class="button" id="users-next" type="button">Next users</button>
+        </div>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
